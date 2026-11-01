@@ -1,0 +1,150 @@
+:root{
+  --bg:#f5f4f0; --card:#fff; --ink:#1f2328; --muted:#6b7078; --line:#e3e1db;
+  --accent:#2f5d50; --accent-ink:#fff; --accent-soft:#e6efeb;
+  --pos:#1d7a4e; --neg:#b03a2e; --warn:#a86a00; --warn-soft:#fff6e0;
+  --radius:8px;
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+a{color:var(--accent)}
+h1{font-size:1.5rem;margin:.2rem 0 1rem}
+h2{font-size:1.1rem;margin:0 0 .75rem}
+h2.section{margin:1.5rem 0 .5rem;font-size:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+h3{font-size:.95rem;margin:1rem 0 .4rem}
+code{background:#f0eee8;padding:1px 5px;border-radius:4px}
+
+header.top{background:var(--accent);color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1.5rem;padding:.6rem 1rem}
+.brand{font-weight:700;font-size:1.05rem}
+.brand span{display:block;font-weight:400;font-size:.75rem;opacity:.8}
+header nav{display:flex;flex-wrap:wrap;gap:.2rem}
+header nav a{color:#fff;text-decoration:none;padding:.35rem .65rem;border-radius:6px;opacity:.85;font-size:.92rem}
+header nav a:hover{background:rgba(255,255,255,.12);opacity:1}
+header nav a.on{background:rgba(255,255,255,.2);opacity:1;font-weight:600}
+header nav a.out{opacity:.6}
+main{max-width:1180px;margin:0 auto;padding:1.25rem 1rem 3rem}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1rem 1.1rem;margin:0 0 1rem}
+.card.narrow{max-width:420px;margin:8vh auto}
+body.login{display:block}
+.head-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.head-row h1{margin:0}
+.muted{color:var(--muted)} .small{font-size:.85rem} .note{color:var(--warn)}
+.r{text-align:right} .nowrap{white-space:nowrap} .right{text-align:right;margin:.5rem 0}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.hidden{display:none}
+
+.flash{padding:.6rem .9rem;border-radius:var(--radius);margin:0 0 1rem;border:1px solid}
+.flash.ok{background:var(--accent-soft);border-color:#bcd5cb}
+.flash.err{background:#fbeaea;border-color:#e5b9b4;color:#7a231a}
+.flash.warn{background:var(--warn-soft);border-color:#f0d9a2}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1rem}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:.9rem 1rem}
+.kpi span{display:block;color:var(--muted);font-size:.85rem}
+.kpi b{display:block;font-size:1.5rem;margin:.15rem 0}
+.kpi.warn{border-left:4px solid var(--warn)}
+
+label{display:block;font-size:.85rem;color:var(--muted);margin:0 0 .6rem}
+label > input,label > select,label > textarea{display:block;width:100%;margin-top:.2rem}
+label.chk{display:flex;align-items:center;gap:.4rem;color:var(--ink)}
+label.chk input{width:auto;margin:0}
+input,select,textarea{font:inherit;color:inherit;background:#fff;border:1px solid #cfccc4;border-radius:6px;padding:.4rem .5rem;max-width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid #9cc2b4;border-color:var(--accent)}
+textarea{width:100%;resize:vertical}
+input.r{text-align:right}
+.w5{width:5.5rem}.w6{width:6.5rem}.w7{width:7.5rem}.grow{flex:1;min-width:14rem}
+fieldset{border:1px solid var(--line);border-radius:var(--radius);margin:0 0 .8rem;padding:.6rem .8rem}
+legend{font-size:.85rem;color:var(--muted)}
+
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 1rem}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 1rem}
+.grid2.tight{gap:0 .5rem}
+.span2{grid-column:span 2}.span3{grid-column:1/-1}
+.grid-abr{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:1rem;align-items:start}
+@media (max-width:900px){.grid-abr,.grid3,.grid2{grid-template-columns:1fr}.span2,.span3{grid-column:auto}}
+
+.inline{display:inline-flex;flex-wrap:nowrap;align-items:center;gap:.4rem;margin:0}
+.inline.wrap{flex-wrap:wrap}
+.inline label{margin:0}
+.filters{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:0 0 .5rem}
+.actions{margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap}
+
+.btn{display:inline-block;background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);border-radius:6px;padding:.42rem .85rem;font:inherit;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:#fff;color:var(--accent)}
+.btn.small{padding:.2rem .5rem;font-size:.82rem;font-weight:500}
+.btn.danger{background:#fff;color:var(--neg);border-color:#e0b3ad}
+
+table.list{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+table.list th,table.list td{padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top;text-align:left}
+table.list th.r,table.list td.r{text-align:right}
+table.list thead th{background:#faf9f6;font-size:.8rem;color:var(--muted);font-weight:600}
+table.list tr:last-child td{border-bottom:0}
+table.list.small td{font-size:.85rem;padding:.3rem .5rem}
+tr.unassigned{background:#fffaf0}
+form.quick{display:flex;gap:.3rem;align-items:center}
+form.quick select{max-width:17rem}
+select.nk,.tag.nk{background:var(--accent-soft)}
+.buchungen td:nth-child(2){max-width:28rem}
+
+.tag{display:inline-block;font-size:.75rem;padding:.05rem .45rem;border-radius:999px;background:#eceae4;color:var(--ink);text-decoration:none;white-space:nowrap}
+.tag.entwurf,.tag.offen{background:var(--warn-soft);color:var(--warn)}
+.tag.versendet,.tag.eingereicht{background:#e7eefb;color:#2c4f8c}
+.tag.ausgeglichen,.tag.erstattet{background:var(--accent-soft);color:var(--pos)}
+
+.tabs{display:flex;flex-wrap:wrap;gap:.3rem;border-bottom:1px solid var(--line);margin-bottom:1rem}
+.tabs a{padding:.45rem .8rem;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent}
+.tabs a.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+
+details.kost{padding:.6rem .9rem}
+details.kost summary{display:flex;justify-content:space-between;gap:1rem;cursor:pointer;list-style:none}
+details.kost summary::-webkit-details-marker{display:none}
+details.kost summary .ka::before{content:"▸ ";color:var(--muted)}
+details.kost[open] summary .ka::before{content:"▾ "}
+details.kost table{margin-top:.6rem}
+details.kost.leer summary b{color:var(--warn)}
+
+/* Abrechnungstabelle (Bildschirm + Druck) */
+table.abr{width:100%;border-collapse:collapse;font-size:.88rem}
+table.abr th{background:#f1efe9;text-align:left;font-weight:700;border:1px solid #cfccc4;padding:.25rem .4rem}
+table.abr td{border:1px solid #d9d6cf;padding:.22rem .4rem}
+table.abr tr.main td:first-child,table.abr tr.grp td{font-weight:700}
+table.abr tr.main td,table.abr tr.grp td{background:#f6f5f1}
+table.abr tr.sp td{background:#e9e7e1;height:.6rem;padding:0}
+table.abr tr.sum td{font-weight:700}
+table.abr tr.tot td{font-weight:700}
+table.abr tr.final td{border-top:2px solid #333;font-size:1rem}
+table.abr .vj{font-size:.75rem;color:var(--muted);font-weight:400}
+table.abr th.r,table.abr td.r{text-align:right}
+
+/* Druckansicht */
+body.druck{background:#e9e7e1}
+.toolbar{max-width:210mm;margin:1rem auto;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.blatt{background:#fff;width:210mm;max-width:100%;min-height:297mm;margin:0 auto 1rem;padding:20mm 20mm 18mm 25mm;position:relative;font-size:10.5pt;line-height:1.4;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.briefkopf{display:flex;justify-content:space-between;gap:2rem;margin-bottom:12mm}
+.briefkopf .empf{padding-top:6mm;min-width:85mm}
+.ruecksende{font-size:7.5pt;color:#555;border-bottom:1px solid #999;display:inline-block;margin-bottom:3mm}
+.abs{text-align:left;font-size:9.5pt}
+.gross{font-size:12pt}
+.betreff{font-size:13pt;margin:0 0 2mm}
+.text{margin:4mm 0}
+.unterschrift{margin-top:10mm}
+.unterschrift-linie{display:flex;justify-content:space-between;margin-top:20mm;font-size:9.5pt}
+.fuss{position:absolute;left:25mm;right:20mm;bottom:12mm;font-size:8.5pt;color:#444;border-top:1px solid #ccc;padding-top:2mm}
+.blatt table.abr{font-size:9pt}
+@media print{
+  @page{size:A4;margin:0}
+  body.druck{background:#fff}
+  .noprint{display:none!important}
+  .blatt{box-shadow:none;margin:0;width:auto;min-height:297mm}
+  .neue-seite{page-break-before:always}
+  table.abr tr{page-break-inside:avoid}
+}
+@media (max-width:700px){.blatt{padding:8mm}.briefkopf{flex-direction:column}.fuss{position:static;margin-top:10mm}}
+.ruecksende{display:table}
+table.abr td.r,table.abr th.r{white-space:nowrap}
+#sptab{table-layout:fixed;width:100%}
+#sptab td{padding:.35rem .3rem}
+#sptab input,#sptab select{width:100%;margin:.1rem 0}
+#sptab td:last-child{width:2.4rem}
+.abr-form #sptab td:first-child{width:55%}
