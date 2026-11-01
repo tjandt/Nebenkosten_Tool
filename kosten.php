@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           [(int)$_POST['kostenart_id'], $jahr, round(parse_num($_POST['betrag']), 2), $_POST['datum'] ?: null, trim($_POST['beschreibung'])]);
         flash('Kostenposition erfasst.');
     } elseif ($a === 'loeschen') {
-        q('DELETE FROM zuordnungen WHERE id=? AND buchung_id IS NULL', [(int)$_POST['id']]);
+        q('DELETE FROM zuordnungen WHERE id=? AND buchung_id IS NULL AND dokument_id IS NULL', [(int)$_POST['id']]);
         flash('Kostenposition gelöscht.');
     } elseif ($a === 'jahr') {
         q('UPDATE zuordnungen SET jahr=? WHERE id=?', [(int)$_POST['neues_jahr'], (int)$_POST['id']]);
@@ -28,7 +28,7 @@ foreach (rows('SELECT z.*, b.name, b.zweck, b.datum bdatum FROM zuordnungen z LE
     $posten[$z['kostenart_id']][] = $z;
 }
 $vorjahr = [];
-foreach (rows('SELECT kostenart_id, SUM(betrag) s FROM zuordnungen WHERE jahr=? GROUP BY kostenart_id', [$jahr - 1]) as $r) $vorjahr[$r['kostenart_id']] = (float)$r['s'];
+foreach (rows('SELECT z.kostenart_id, SUM(z.betrag) s FROM zuordnungen z WHERE z.jahr=? AND ' . zaehlt_sql() . ' GROUP BY z.kostenart_id', [$jahr - 1]) as $r) $vorjahr[$r['kostenart_id']] = (float)$r['s'];
 
 page_head("Kosten $jahr", 'kosten.php');
 ?>
@@ -60,7 +60,9 @@ page_head("Kosten $jahr", 'kosten.php');
       <h2 class="section"><?= h($g) ?></h2><div class="kosten">
     <?php endif;
     $liste = $posten[$k['id']] ?? [];
-    $summe = array_sum(array_map(fn($z) => (float)$z['betrag'], $liste));
+    // Hat die Kostenart eine übernommene Jahresabrechnung, ersetzt sie die einzelnen Buchungen
+    $ausDok = (bool)array_filter($liste, fn($z) => $z['dokument_id']);
+    $summe = array_sum(array_map(fn($z) => $ausDok && !$z['dokument_id'] ? 0.0 : (float)$z['betrag'], $liste));
     if (!$liste && !$k['umlagefaehig']) continue;
     $vj = $vorjahr[$k['id']] ?? null; ?>
   <details class="card kost <?= $liste ? '' : 'leer' ?>" <?= $k['umlagefaehig'] && !$liste ? 'open' : '' ?>>
@@ -71,18 +73,22 @@ page_head("Kosten $jahr", 'kosten.php');
     <?php if (!$liste): ?><p class="muted small">Keine Kosten für <?= $jahr ?> erfasst<?= $k['hinweis'] ? ' – ' . h($k['hinweis']) : '' ?>.</p><?php endif; ?>
     <?php if ($liste): ?>
     <table class="list small">
-      <?php foreach ($liste as $z): ?>
-        <tr>
+      <?php foreach ($liste as $z): $ersetzt = $ausDok && !$z['dokument_id']; ?>
+        <tr class="<?= $ersetzt ? 'muted ersetzt' : '' ?>">
           <td class="nowrap"><?= dt($z['datum'] ?? $z['bdatum']) ?></td>
-          <td><?= $z['buchung_id'] ? '<a href="buchung.php?id=' . $z['buchung_id'] . '">' . h($z['name']) . '</a> <span class="muted">' . h($z['zweck']) . '</span>' : '<span class="tag">Beleg</span> ' . h($z['beschreibung']) ?>
-              <?= $z['buchung_id'] && $z['beschreibung'] ? '<div class="muted">' . h($z['beschreibung']) . '</div>' : '' ?></td>
-          <td class="r nowrap"><?= eur($z['betrag']) ?></td>
+          <td><?= $z['dokument_id'] ? '<a class="tag ausgeglichen" href="versorger_abrechnung.php?id=' . $z['dokument_id'] . '">Jahresabrechnung</a> ' . h($z['beschreibung']) : '' ?>
+              <?= $ersetzt ? '<span class="tag">ersetzt durch Jahresabrechnung</span> ' : '' ?>
+              <?= $z['dokument_id'] ? '' : ($z['buchung_id'] ? '<a href="buchung.php?id=' . $z['buchung_id'] . '">' . h($z['name']) . '</a> <span class="muted">' . h($z['zweck']) . '</span>' : '<span class="tag">Beleg</span> ' . h($z['beschreibung'])) ?>
+              <?= !$z['dokument_id'] && $z['buchung_id'] && $z['beschreibung'] ? '<div class="muted">' . h($z['beschreibung']) . '</div>' : '' ?></td>
+          <td class="r nowrap"><?= $ersetzt ? '<s>' . eur($z['betrag']) . '</s>' : eur($z['betrag']) ?></td>
           <td class="nowrap">
+            <?php if (!$z['dokument_id']): ?>
             <form method="post" class="inline">
               <?= csrf_field() ?><input type="hidden" name="aktion" value="jahr"><input type="hidden" name="id" value="<?= $z['id'] ?>">
               <input type="number" name="neues_jahr" value="<?= $jahr ?>" class="w5" title="Abrechnungsjahr ändern"><button class="btn small ghost">↷</button>
             </form>
-            <?php if (!$z['buchung_id']): ?>
+            <?php endif; ?>
+            <?php if (!$z['buchung_id'] && !$z['dokument_id']): ?>
             <form method="post" class="inline" onsubmit="return confirm('Position löschen?')">
               <?= csrf_field() ?><input type="hidden" name="aktion" value="loeschen"><input type="hidden" name="id" value="<?= $z['id'] ?>">
               <button class="btn small danger">×</button>

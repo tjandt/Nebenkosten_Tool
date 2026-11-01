@@ -27,7 +27,7 @@ function abrechnung_tabelle(array $d, bool $bildschirm = false, array $vorjahr =
           if (empty($p['unter'])) $g = '';
           $key = $g . '|' . $p['bezeichnung']; ?>
           <tr class="<?= !empty($p['unter']) ? 'sub' : 'main' ?>">
-            <td><?= h($p['nr'] . ' ' . $p['bezeichnung']) ?></td>
+            <td><?= h($p['nr'] . ' ' . $p['bezeichnung']) ?><?php if ($bildschirm && !empty($p['quelle'])): ?> <span class="tag <?= $p['quelle'] === 'Jahresabrechnung' ? 'ausgeglichen' : '' ?>" title="Herkunft der Gesamtkosten"><?= h($p['quelle']) ?></span><?php endif; ?></td>
             <td class="r"><?= eur($p['gesamt']) ?></td>
             <td><?= h($p['schluessel']) ?></td>
             <td><?= h($p['berechnung']) ?></td>

@@ -9,6 +9,7 @@ if (!is_file($cfgFile)) {
     exit('config.php fehlt – bitte config.sample.php nach config.php kopieren und anpassen.');
 }
 $CFG = require $cfgFile;
+require_once __DIR__ . '/migrate.php';
 
 session_name('nkverw');
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS'])]);
@@ -96,6 +97,23 @@ function redirect(string $url): never { header('Location: ' . $url); exit; }
 function require_login(): void
 {
     if (empty($_SESSION['login'])) redirect('login.php?zurueck=' . urlencode($_SERVER['REQUEST_URI'] ?? 'index.php'));
+    try {
+        schema_migrieren();
+    } catch (Throwable $e) {
+        http_response_code(500);
+        exit('Datenbank-Update fehlgeschlagen: ' . h($e->getMessage()));
+    }
+}
+
+/**
+ * SQL-Bedingung für Zuordnungen, die in Kostenauswertungen zählen: Sobald für eine Kostenart und ein Jahr
+ * Positionen aus einer Versorger-Jahresabrechnung übernommen sind, haben diese Vorrang vor den einzelnen
+ * Kontobuchungen (Abschläge, Nachzahlung) – sonst würden die Kosten doppelt gezählt.
+ */
+function zaehlt_sql(string $a = 'z'): string
+{
+    return "($a.dokument_id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM zuordnungen zd
+        WHERE zd.dokument_id IS NOT NULL AND zd.kostenart_id=$a.kostenart_id AND zd.jahr=$a.jahr))";
 }
 
 function check_password(string $pw): bool

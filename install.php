@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (trim($stmt) !== '') db()->exec($stmt);
             }
         }
+        schema_migrieren();
         // automatisch zuordnen
         $n = 0;
         foreach (rows('SELECT id FROM buchungen ORDER BY datum, id') as $b) if (auto_zuordnen((int)$b['id'])) $n++;

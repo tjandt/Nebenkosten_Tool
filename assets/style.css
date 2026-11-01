@@ -148,3 +148,12 @@ table.abr td.r,table.abr th.r{white-space:nowrap}
 #sptab input,#sptab select{width:100%;margin:.1rem 0}
 #sptab td:last-child{width:2.4rem}
 .abr-form #sptab td:first-child{width:55%}
+
+/* Versorger-Abrechnungen: Abgleich */
+ul.checks{list-style:none;margin:0 0 1rem;padding:0}
+ul.checks li{padding:.35rem .6rem;border-left:4px solid var(--line);margin:0 0 .35rem;background:#faf9f6;border-radius:0 6px 6px 0}
+ul.checks li.ok{border-left-color:var(--pos)} ul.checks li.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+ul.checks .ic{display:inline-block;width:1.2rem;font-weight:700}
+ul.checks li.ok .ic{color:var(--pos)} ul.checks li.warn .ic{color:var(--warn)}
+tr.ersetzt td{opacity:.6}
+table.list tfoot td{background:#faf9f6;border-top:2px solid var(--line)}

@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/inc/bootstrap.php';
 require __DIR__ . '/inc/layout.php';
+require_once __DIR__ . '/inc/versorger.php';
 require_login();
 check_csrf();
 
@@ -34,6 +35,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($_POST['id'])) q('UPDATE regeln SET suchtext=?, kostenart_id=?, nur_vorzeichen=?, prioritaet=? WHERE id=?', [...$d, (int)$_POST['id']]);
         else q('INSERT INTO regeln (suchtext, kostenart_id, nur_vorzeichen, prioritaet) VALUES (?,?,?,?)', $d);
         flash('Regel gespeichert.');
+    } elseif ($a === 'versorgung') {
+        $f = fn($k) => trim((string)($_POST[$k] ?? ''));
+        $d = [$f('bezeichnung'), $f('anbieter'), $f('kostenart_id') === '' ? null : (int)$f('kostenart_id'),
+              $f('vertragsnummer') ?: null, $f('kundennummer') ?: null, $f('zaehlernummer') ?: null, $f('suchtext') ?: null,
+              $f('abschlag_monat') === '' ? null : parse_num($f('abschlag_monat')), $f('beginn') ?: null, $f('ende') ?: null, $f('notiz') ?: null];
+        if (!empty($_POST['id'])) q('UPDATE versorgungsvertraege SET bezeichnung=?, anbieter=?, kostenart_id=?, vertragsnummer=?, kundennummer=?, zaehlernummer=?, suchtext=?, abschlag_monat=?, beginn=?, ende=?, notiz=? WHERE id=?', [...$d, (int)$_POST['id']]);
+        else q('INSERT INTO versorgungsvertraege (bezeichnung, anbieter, kostenart_id, vertragsnummer, kundennummer, zaehlernummer, suchtext, abschlag_monat, beginn, ende, notiz) VALUES (?,?,?,?,?,?,?,?,?,?,?)', $d);
+        flash('Versorgungsvertrag gespeichert.');
+    } elseif ($a === 'versorgung_loeschen') {
+        if ((int)val('SELECT COUNT(*) FROM versorger_abrechnungen WHERE versorgungsvertrag_id=?', [(int)$_POST['id']]) > 0) flash('Zum Vertrag gibt es hochgeladene Jahresabrechnungen – er kann nicht gelöscht werden.', 'err');
+        else { q('DELETE FROM versorgungsvertraege WHERE id=?', [(int)$_POST['id']]); flash('Versorgungsvertrag gelöscht.'); }
     } elseif ($a === 'regel_loeschen') {
         q('DELETE FROM regeln WHERE id=?', [(int)$_POST['id']]);
         flash('Regel gelöscht.');
@@ -42,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 page_head('Stammdaten', 'stammdaten.php');
-$tabs = ['kostenarten' => 'Kostenarten & Schlüssel', 'regeln' => 'Zuordnungsregeln', 'objekt' => 'Objekt', 'einstellungen' => 'Absender & Einstellungen'];
+$tabs = ['kostenarten' => 'Kostenarten & Schlüssel', 'versorgung' => 'Versorgungsverträge', 'regeln' => 'Zuordnungsregeln', 'objekt' => 'Objekt', 'einstellungen' => 'Absender & Einstellungen'];
 ?>
 <h1>Stammdaten</h1>
 <nav class="tabs"><?php foreach ($tabs as $k => $l): ?><a href="?tab=<?= $k ?>" class="<?= $tab === $k ? 'on' : '' ?>"><?= h($l) ?></a><?php endforeach; ?></nav>
@@ -81,6 +93,55 @@ $tabs = ['kostenarten' => 'Kostenarten & Schlüssel', 'regeln' => 'Zuordnungsreg
       <label class="span3">Hinweis<input name="hinweis" value="<?= h($edit['hinweis'] ?? '') ?>" placeholder="enthält „Zähler“ → Schlüsseltext „Zähler (100 %)“"></label>
     </div>
     <div class="actions"><button class="btn">Speichern</button> <?php if ($edit): ?><a class="btn ghost" href="?tab=kostenarten">Neu</a><?php endif; ?></div>
+  </form>
+
+<?php elseif ($tab === 'versorgung'):
+    $vv = rows('SELECT v.*, k.bezeichnung ka_bez, k.gruppe ka_gruppe, (SELECT COUNT(*) FROM versorger_abrechnungen a WHERE a.versorgungsvertrag_id=v.id) n FROM versorgungsvertraege v LEFT JOIN kostenarten k ON k.id=v.kostenart_id ORDER BY v.bezeichnung, v.id');
+    $edit = isset($_GET['id']) ? row('SELECT * FROM versorgungsvertraege WHERE id=?', [(int)$_GET['id']]) : null; ?>
+  <p class="muted">Verträge mit Versorgern und Versicherern (Wasser/Abwasser, Strom, Müll, Versicherungen …). Buchungen, deren Verwendungszweck die Vertrags- oder Kundennummer (oder den Suchtext) enthält, werden beim Import automatisch der hinterlegten Kostenart zugeordnet. Zu jedem Vertrag können unter <a href="versorger.php">Versorger</a> die Jahresabrechnungen als PDF hochgeladen und mit dem Kontoauszug abgeglichen werden.</p>
+  <table class="list">
+    <thead><tr><th>Vertrag</th><th>Nummern</th><th>Kostenart der Zahlungen</th><th>Laufzeit</th><th class="r">Abrechn.</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($vv as $v): ?>
+      <tr>
+        <td><b><?= h($v['bezeichnung']) ?></b><div class="small muted"><?= h($v['anbieter']) ?></div></td>
+        <td class="small">
+          <?= $v['vertragsnummer'] ? 'Vertrag <code>' . h($v['vertragsnummer']) . '</code><br>' : '' ?>
+          <?= $v['kundennummer'] ? 'Kunde <code>' . h($v['kundennummer']) . '</code><br>' : '' ?>
+          <?= $v['zaehlernummer'] ? 'Zähler <code>' . h($v['zaehlernummer']) . '</code>' : '' ?>
+          <?php if (!$v['vertragsnummer'] && !$v['kundennummer'] && !$v['zaehlernummer']): ?><span class="muted">–</span><?php endif; ?>
+        </td>
+        <td class="small"><?= $v['kostenart_id'] ? h(kostenart_label(['gruppe' => $v['ka_gruppe'], 'bezeichnung' => $v['ka_bez']])) : '<span class="muted">–</span>' ?>
+          <?= $v['abschlag_monat'] !== null ? '<div class="muted">Abschlag ' . eur($v['abschlag_monat']) . ' / Monat</div>' : '' ?></td>
+        <td class="small nowrap"><?= $v['beginn'] ? dt($v['beginn']) : '…' ?> – <?= $v['ende'] ? dt($v['ende']) : 'laufend' ?></td>
+        <td class="r"><?= $v['n'] ? '<a href="versorger.php?vertrag=' . $v['id'] . '">' . $v['n'] . '</a>' : '0' ?></td>
+        <td class="nowrap"><a class="btn small ghost" href="?tab=versorgung&id=<?= $v['id'] ?>#form">bearbeiten</a>
+          <?php if (!$v['n']): ?><form method="post" class="inline" onsubmit="return confirm('Löschen?')"><?= csrf_field() ?><input type="hidden" name="aktion" value="versorgung_loeschen"><input type="hidden" name="id" value="<?= $v['id'] ?>"><button class="btn small danger">×</button></form><?php endif; ?></td>
+      </tr>
+    <?php endforeach; ?>
+    <?php if (!$vv): ?><tr><td colspan="6" class="muted">Noch keine Versorgungsverträge angelegt.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  <form method="post" class="card" id="form">
+    <?= csrf_field() ?><input type="hidden" name="aktion" value="versorgung"><input type="hidden" name="id" value="<?= h($edit['id'] ?? '') ?>">
+    <h2><?= $edit ? 'Versorgungsvertrag bearbeiten' : 'Neuer Versorgungsvertrag' ?></h2>
+    <div class="grid3">
+      <label>Bezeichnung<input name="bezeichnung" value="<?= h($edit['bezeichnung'] ?? '') ?>" placeholder="z. B. Allgemeinstrom" required></label>
+      <label>Anbieter / Versorger<input name="anbieter" value="<?= h($edit['anbieter'] ?? '') ?>" placeholder="z. B. envia"></label>
+      <label>Kostenart der Abschläge / Zahlungen<select name="kostenart_id"><?= kostenart_options(isset($edit['kostenart_id']) ? (int)$edit['kostenart_id'] : null) ?></select></label>
+      <label>Vertragsnummer<input name="vertragsnummer" value="<?= h($edit['vertragsnummer'] ?? '') ?>"></label>
+      <label>Kundennummer<input name="kundennummer" value="<?= h($edit['kundennummer'] ?? '') ?>"></label>
+      <label>Zählernummer<input name="zaehlernummer" value="<?= h($edit['zaehlernummer'] ?? '') ?>"></label>
+      <label>Suchtext im Kontoauszug (optional)<input name="suchtext" value="<?= h($edit['suchtext'] ?? '') ?>" placeholder="z. B. Name des Empfängers"></label>
+      <label>Abschlag € / Monat<input name="abschlag_monat" value="<?= isset($edit['abschlag_monat']) && $edit['abschlag_monat'] !== null ? num($edit['abschlag_monat']) : '' ?>"></label>
+      <span></span>
+      <label>Beginn<input type="date" name="beginn" value="<?= h($edit['beginn'] ?? '') ?>"></label>
+      <label>Ende (leer = laufend)<input type="date" name="ende" value="<?= h($edit['ende'] ?? '') ?>"></label>
+      <span></span>
+      <label class="span3">Notiz<textarea name="notiz" rows="2"><?= h($edit['notiz'] ?? '') ?></textarea></label>
+    </div>
+    <p class="muted small">Vertrags- und Kundennummer werden unabhängig von Leerzeichen, Bindestrichen und Groß-/Kleinschreibung im Buchungstext erkannt (mindestens 5 Zeichen). Der Vertrag wird auch beim Lesen hochgeladener PDFs anhand dieser Nummern erkannt.</p>
+    <div class="actions"><button class="btn">Speichern</button> <?php if ($edit): ?><a class="btn ghost" href="?tab=versorgung">Neu</a><?php endif; ?></div>
   </form>
 
 <?php elseif ($tab === 'regeln'):
