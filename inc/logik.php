@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/versorger.php';
+
 /* ---------- Zuordnungsregeln ---------- */
 
 function regel_kostenart(array $b): ?int
@@ -7,6 +9,12 @@ function regel_kostenart(array $b): ?int
     $regeln ??= rows('SELECT * FROM regeln ORDER BY prioritaet, id');
     $text = mb_strtolower(($b['name'] ?? '') . ' ' . ($b['zweck'] ?? '') . ' ' . ($b['typ'] ?? ''));
     $betrag = (float)$b['betrag'];
+    // Versorgungsverträge (Vertrags-/Kundennummer, Anbieter-Suchtext) sind genauer als allgemeine Textregeln
+    static $vertraege = null;
+    $vertraege ??= rows('SELECT * FROM versorgungsvertraege WHERE kostenart_id IS NOT NULL ORDER BY id');
+    foreach ($vertraege as $v) {
+        if (vertrag_passt_text($v, ($b['name'] ?? '') . ' ' . ($b['zweck'] ?? ''))) return (int)$v['kostenart_id'];
+    }
     foreach ($regeln as $r) {
         if ($r['nur_vorzeichen'] === 'ausgabe' && $betrag >= 0) continue;
         if ($r['nur_vorzeichen'] === 'einnahme' && $betrag <= 0) continue;
@@ -172,9 +180,12 @@ function berechne_abrechnung(int $vertragId, int $jahr, array $eingaben = []): a
 
     $kostenarten = rows('SELECT * FROM kostenarten WHERE umlagefaehig=1 ORDER BY sortierung, id');
     $summen = [];
-    foreach (rows('SELECT kostenart_id, SUM(betrag) s FROM zuordnungen WHERE jahr=? GROUP BY kostenart_id', [$jahr]) as $r) {
+    foreach (rows('SELECT z.kostenart_id, SUM(z.betrag) s FROM zuordnungen z WHERE z.jahr=? AND ' . zaehlt_sql() . ' GROUP BY z.kostenart_id', [$jahr]) as $r) {
         $summen[(int)$r['kostenart_id']] = round((float)$r['s'], 2);
     }
+    // Kostenarten, deren Jahreskosten aus einer Versorger-Jahresabrechnung (PDF) stammen
+    $ausDokument = array_flip(array_map('intval', array_column(
+        rows('SELECT DISTINCT kostenart_id FROM zuordnungen WHERE jahr=? AND dokument_id IS NOT NULL', [$jahr]), 'kostenart_id')));
 
     $positionen = []; $nr = 0; $letzteGruppe = null; $unter = 0; $summe = 0.0;
     foreach ($kostenarten as $k) {
@@ -226,6 +237,7 @@ function berechne_abrechnung(int $vertragId, int $jahr, array $eingaben = []): a
             'typ' => 'position', 'nr' => $label, 'unter' => (bool)$k['gruppe'], 'kostenart_id' => (int)$k['id'],
             'bezeichnung' => $k['bezeichnung'], 'gesamt' => $gesamt, 'schluessel' => $sText,
             'berechnung' => $bText, 'anteil' => $anteil,
+            'quelle' => isset($ausDokument[(int)$k['id']]) ? 'Jahresabrechnung' : 'Kontobuchungen',
         ];
     }
     $summe = round($summe, 2);
@@ -255,7 +267,7 @@ function berechne_abrechnung(int $vertragId, int $jahr, array $eingaben = []): a
         $belege = rows('SELECT z.kostenart_id, z.betrag, COALESCE(z.datum, b.datum) datum,
                 COALESCE(NULLIF(z.beschreibung,""), CONCAT_WS(" – ", b.name, b.zweck)) text
             FROM zuordnungen z JOIN kostenarten k ON k.id=z.kostenart_id LEFT JOIN buchungen b ON b.id=z.buchung_id
-            WHERE z.jahr=? AND k.umlagefaehig=1 ORDER BY k.sortierung, datum', [$jahr]);
+            WHERE z.jahr=? AND k.umlagefaehig=1 AND ' . zaehlt_sql() . ' ORDER BY k.sortierung, datum', [$jahr]);
     }
 
     $vonDatum = max($v['beginn'], "$jahr-01-01");

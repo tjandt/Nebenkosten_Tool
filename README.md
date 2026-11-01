@@ -15,13 +15,23 @@ Kleine PHP/MySQL-Anwendung für Mietverträge, Kontobuchungen, Nebenkostenabrech
 4. `install.php` im Browser aufrufen, Passwort eingeben, „Einrichten“.
    Optional werden dabei alle 235 Kontoumsätze 10/2021–10/2026 aus den N26-Auszügen übernommen (Endsaldo 1.198,98 €) und die Abrechnung 2024 als Archiv angelegt.
 5. Danach `install.php` und den Ordner `install/` löschen.
-6. Der Ordner `belege/` muss für PHP beschreibbar sein (Belege der Auslagen).
+6. Der Ordner `belege/` muss für PHP beschreibbar sein (Belege der Auslagen, Versorger-PDFs). Für größere PDFs ggf. `upload_max_filesize` erhöhen.
 
 Lokal testen: `php -S localhost:8000` im Ordner starten.
 
+## Update bestehender Installationen
+Neue Dateien per FTP hochladen (alle `*.php`, `inc/`, `assets/`; `config.php` und `belege/` bleiben unverändert). Beim nächsten Login legt die Anwendung die neuen Tabellen selbst an (`inc/migrate.php`, einmalig, bestehende Daten bleiben erhalten). Der DB-Benutzer braucht dafür das Recht `CREATE`/`ALTER`.
+
+## Versorgungsverträge und Jahresabrechnungen der Versorger
+1. **Stammdaten → Versorgungsverträge**: Wasser/Abwasser, Strom, Müll, Versicherungen usw. mit Anbieter, **Vertragsnummer**, Kundennummer, Zählernummer, Abschlag und der Kostenart der laufenden Zahlungen anlegen. Buchungen, deren Verwendungszweck die Vertrags-/Kundennummer (oder den Suchtext) enthält, werden beim Import automatisch dieser Kostenart zugeordnet.
+2. **Versorger → PDF hochladen**: Jahresabrechnung als PDF hochladen. Ist `pdftotext` auf dem Server vorhanden, werden Vertrag (über die Nummern), Zeitraum und Rechnungsdatum erkannt; sonst den Text aus dem PDF einfügen oder alles von Hand eintragen.
+3. Auf der Detailseite die **Kostenpositionen** der Abrechnung eintragen (z. B. Grundgebühr, Verbrauch, Niederschlagswasser) und je Position die Kostenart wählen, dazu die laut Abrechnung bereits gezahlten Abschläge und den Saldo.
+4. Der **Abgleich** vergleicht mit dem Kontoauszug: Summe der Abschlagszahlungen im Abrechnungszeitraum, Nachzahlung/Guthaben (Buchung mit dem Saldo-Betrag nach der Abrechnung) und ob gezahlte Beträge zu den Gesamtkosten passen. Abweichungen werden angezeigt.
+5. **Als Kosten übernehmen**: Die Positionen zählen dann als Kosten des Jahres. Für diese Kostenarten ersetzt die Jahresabrechnung die einzelnen Kontobuchungen (nichts wird doppelt gerechnet). „Übernahme zurücknehmen“ macht das rückgängig. In der Nebenkostenabrechnung ist je Position sichtbar, ob die Kosten aus der Jahresabrechnung oder aus Buchungen stammen; fehlende oder noch nicht übernommene Abrechnungen werden gemeldet.
+
 ## Ablauf Jahresabrechnung
 1. **Import** – Kontoauszug als CSV (N26: Kontoauszüge → CSV) oder den Text aus dem PDF-Auszug einfügen. Doppelte Buchungen werden erkannt, Kostenarten über Regeln automatisch zugeordnet.
-2. **Kosten je Jahr** prüfen. Beträge aus Bescheiden ohne passende Einzelbuchung (v. a. ZWA-Jahresrechnung: Grundgebühr, Verbrauch, Niederschlagswasser) dort als „Kostenposition ohne Kontobuchung“ erfassen. Die monatlichen ZWA-Abschläge selbst sind bewusst *nicht* umlagefähig.
+2. **Jahresabrechnungen der Versorger hochladen** (siehe oben) oder unter **Kosten je Jahr** prüfen. Beträge aus Bescheiden ohne passende Einzelbuchung (v. a. ZWA-Jahresrechnung: Grundgebühr, Verbrauch, Niederschlagswasser) lassen sich dort auch direkt als „Kostenposition ohne Kontobuchung“ erfassen. Die monatlichen ZWA-Abschläge selbst sind bewusst *nicht* umlagefähig.
    Das Abrechnungsjahr einer Buchung lässt sich ändern (z. B. Versicherung im Dezember für das Folgejahr – bei Zeitraumangabe im Verwendungszweck geschieht das automatisch).
 3. **Abrechnung** – Vertrag + Jahr wählen. Vorschau mit Vorjahresvergleich, Vorauszahlungen und Sonderposten (Gartenpacht, Hausmeister-Gutschrift) anpassbar → „Speichern & Druckansicht“ → im Browser als PDF speichern. Gespeicherte Abrechnungen sind eingefroren und ändern sich nicht mehr, wenn später Buchungen geändert werden.
 4. Nach der Überweisung die Ausgleichsbuchung verknüpfen → Status „ausgeglichen“.
@@ -33,4 +43,4 @@ Fläche (Anteil % im Vertrag, sonst Wohnfläche/Gesamtfläche), Direkt (100 % od
 Porto, Fahrten (km × Satz, Hin-/Rückfahrt), Gebühren usw. mit Beleg (PDF/Foto). Status offen → eingereicht → erstattet, optional mit der Erstattungsbuchung verknüpft. „Aufstellung drucken“ erzeugt eine unterschriftsfähige Liste (z. B. für den Nachlasspfleger). Die drei Verwaltungspauschalen 2023–2025 sind als bereits erstattet eingetragen.
 
 ## Datensicherung
-Regelmäßig die Datenbank (phpMyAdmin → Exportieren) und den Ordner `belege/` sichern.
+Regelmäßig die Datenbank (phpMyAdmin → Exportieren) und den Ordner `belege/` sichern (enthält auch die hochgeladenen Versorger-PDFs).

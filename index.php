@@ -10,7 +10,7 @@ $auslagenOffen = row("SELECT COUNT(*) n, COALESCE(SUM(betrag),0) s FROM auslagen
 $jahre = rows('SELECT YEAR(datum) j, SUM(CASE WHEN betrag>0 THEN betrag ELSE 0 END) ein, SUM(CASE WHEN betrag<0 THEN betrag ELSE 0 END) aus, COUNT(*) n
                FROM buchungen GROUP BY YEAR(datum) ORDER BY j DESC');
 $nk = [];
-foreach (rows('SELECT z.jahr, SUM(z.betrag) s FROM zuordnungen z JOIN kostenarten k ON k.id=z.kostenart_id WHERE k.umlagefaehig=1 GROUP BY z.jahr') as $r) $nk[$r['jahr']] = (float)$r['s'];
+foreach (rows('SELECT z.jahr, SUM(z.betrag) s FROM zuordnungen z JOIN kostenarten k ON k.id=z.kostenart_id WHERE k.umlagefaehig=1 AND ' . zaehlt_sql() . ' GROUP BY z.jahr') as $r) $nk[$r['jahr']] = (float)$r['s'];
 $abr = [];
 foreach (rows('SELECT a.*, v.mieter_name FROM abrechnungen a JOIN vertraege v ON v.id=a.vertrag_id ORDER BY a.jahr DESC, a.id DESC') as $a) $abr[$a['jahr']][] = $a;
 $vertraege = rows('SELECT * FROM vertraege WHERE ende IS NULL OR ende >= CURDATE() ORDER BY mieter_name');

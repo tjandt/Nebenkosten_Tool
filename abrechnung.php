@@ -44,6 +44,7 @@ if (isset($_REQUEST['neu'])) {
     }
 
     $fehlend = rows('SELECT k.* FROM kostenarten k WHERE k.umlagefaehig=1 AND NOT EXISTS (SELECT 1 FROM zuordnungen z WHERE z.kostenart_id=k.id AND z.jahr=?) ORDER BY sortierung', [$jahr]);
+    $ohneDok = versorger_fehlende($jahr);
     $vorher = rows('SELECT id, erstellt_am, ergebnis, status FROM abrechnungen WHERE vertrag_id=? AND jahr=?', [$vertragId, $jahr]);
     $vorjahrSnap = row('SELECT daten FROM abrechnungen WHERE vertrag_id=? AND jahr=? ORDER BY id DESC LIMIT 1', [$vertragId, $jahr - 1]);
     $vj = $vorjahrSnap ? abrechnung_keys(json_decode($vorjahrSnap['daten'], true)['positionen']) : [];
@@ -56,6 +57,16 @@ if (isset($_REQUEST['neu'])) {
     <?php if ($fehlend): ?>
       <div class="flash warn">Für <?= $jahr ?> fehlen Kosten bei: <?= h(implode(', ', array_map('kostenart_label', $fehlend))) ?>. <a href="kosten.php?jahr=<?= $jahr ?>">Kosten ergänzen</a> (z. B. ZWA-Jahresrechnung) – oder ignorieren, wenn sie nicht anfallen.</div>
     <?php endif; ?>
+    <?php if ($ohneDok): ?>
+      <div class="flash warn">Für <?= $jahr ?> fehlt die Jahresabrechnung von: <?= h(implode(', ', array_map(fn($v) => $v['bezeichnung'] . ($v['anbieter'] ? ' (' . $v['anbieter'] . ')' : ''), $ohneDok))) ?>. <a href="versorger.php?jahr=<?= $jahr ?>">PDF hochladen &amp; abgleichen</a> – bis dahin zählen die einzelnen Kontobuchungen.</div>
+    <?php endif; ?>
+    <?php foreach (rows('SELECT a.id FROM versorger_abrechnungen a WHERE a.jahr=? ORDER BY a.id', [$jahr]) as $va):
+        $vd = versorger_laden((int)$va['id']); $vab = versorger_abgleich($vd);
+        if (!$vd['uebernommen']): ?>
+      <div class="flash warn">Jahresabrechnung „<?= h(($vd['vertrag']['bezeichnung'] ?? 'ohne Vertrag')) ?>“ <?= $jahr ?> ist hochgeladen, aber noch nicht als Kosten übernommen. <a href="versorger_abrechnung.php?id=<?= $vd['id'] ?>">Prüfen &amp; übernehmen</a></div>
+      <?php elseif ($vab['status'] === 'warn'): ?>
+      <div class="flash warn">Jahresabrechnung „<?= h(($vd['vertrag']['bezeichnung'] ?? 'ohne Vertrag')) ?>“ <?= $jahr ?>: Abweichungen zum Kontoauszug. <a href="versorger_abrechnung.php?id=<?= $vd['id'] ?>">Abgleich ansehen</a></div>
+    <?php endif; endforeach; ?>
     <?php if ($d['monate'] < 12): ?><div class="flash warn">Mietverhältnis nur <?= $d['monate'] ?> Monate im Jahr <?= $jahr ?> – Kosten und Vorauszahlungen anteilig.</div><?php endif; ?>
 
     <form method="post" class="abr-form">

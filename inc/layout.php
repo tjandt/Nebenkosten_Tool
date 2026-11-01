@@ -5,6 +5,7 @@ function page_head(string $title, string $aktiv = ''): void
         'index.php' => 'Übersicht',
         'buchungen.php' => 'Kontobuchungen',
         'import.php' => 'Import',
+        'versorger.php' => 'Versorger',
         'kosten.php' => 'Kosten je Jahr',
         'abrechnung.php' => 'Abrechnungen',
         'auslagen.php' => 'Auslagen',

@@ -2,7 +2,11 @@
 require __DIR__ . '/inc/bootstrap.php';
 require_login();
 
-$a = row('SELECT beleg_datei, beleg_name FROM auslagen WHERE id=?', [(int)($_GET['id'] ?? 0)]);
+if (($_GET['typ'] ?? '') === 'versorger') {
+    $a = row('SELECT datei beleg_datei, datei_name beleg_name FROM versorger_abrechnungen WHERE id=?', [(int)($_GET['id'] ?? 0)]);
+} else {
+    $a = row('SELECT beleg_datei, beleg_name FROM auslagen WHERE id=?', [(int)($_GET['id'] ?? 0)]);
+}
 $ordner = $CFG['beleg_ordner'] ?? __DIR__ . '/belege';
 $pfad = $a && $a['beleg_datei'] ? $ordner . '/' . basename($a['beleg_datei']) : '';
 if (!$pfad || !is_file($pfad)) { http_response_code(404); exit('Beleg nicht gefunden.'); }
